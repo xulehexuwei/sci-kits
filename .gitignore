@@ -21,4 +21,4 @@
 vendor
 app
 settings.local.ini
-log_file
+logs
