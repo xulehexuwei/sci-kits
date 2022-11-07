@@ -12,8 +12,6 @@ Zap提供了两种类型的日志记录器—Sugared Logger和Logger。
 在每一微秒和每一次内存分配都很重要的上下文中，使用Logger。它甚至比SugaredLogger更快，内存分配次数也更少，但它只支持强类型的结构化日志记录。
 */
 
-const logFile = "./logs/test.log"
-
 var (
 	SugarLogger *zap.SugaredLogger
 	Logger      *zap.Logger
@@ -22,7 +20,7 @@ var (
 const (
 	logLevel       = zapcore.DebugLevel
 	fileMaxSize    = 50 // M
-	fileMaxBackups = 5  // 文件个数
+	fileMaxBackups = 10 // 文件个数
 	fileMaxAge     = 30 // day
 )
 
@@ -49,6 +47,11 @@ func getEncoder() zapcore.Encoder {
 }
 
 func getLogWriter() zapcore.WriteSyncer {
+	logFile := MyViper.GetString("logs.filepath")
+	if logFile == "" {
+		logFile = "./logs/zap_logger.log"
+	}
+
 	// 日志文件每50MB会切割并且在当前目录下最多保存5个备份
 	lumberJackLogger := &lumberjack.Logger{
 		Filename:   logFile,

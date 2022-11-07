@@ -20,5 +20,6 @@
 .DS_Store
 vendor
 app
-settings.local.ini
+settings.local.yaml
+settings.yaml
 logs
