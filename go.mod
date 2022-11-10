@@ -4,6 +4,7 @@ go 1.18
 
 require (
 	github.com/gin-gonic/gin v1.8.1
+	github.com/golang-jwt/jwt v3.2.2+incompatible
 	github.com/minio/minio-go/v6 v6.0.57
 	github.com/natefinch/lumberjack v2.0.0+incompatible
 	github.com/spf13/viper v1.14.0

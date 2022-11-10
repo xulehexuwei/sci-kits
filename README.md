@@ -15,3 +15,13 @@ git add * git commit -m "第一次提交" git push
 go get github.com/gl1n/gowave
 
 - 需要在Goland中勾选Settings>Go>Go Modules的Enable Go modules integration以正确识别外部导入的包
+
+
+## 功能
+
+- jwt
+- minio
+- gin response
+- time_fun
+- viper
+- zap_logger
