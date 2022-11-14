@@ -25,3 +25,4 @@ go get github.com/gl1n/gowave
 - time_fun
 - viper
 - zap_logger
+- randomStr 得到指定长度的随机字符串
