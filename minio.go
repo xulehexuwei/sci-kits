@@ -54,7 +54,7 @@ func (m *MyMinIo) CreateBucket(bucketName string) {
 	log.Printf("Successfully created %s\n", bucketName)
 }
 
-func (m *MyMinIo) UploadFile(bucketName, filePath, objectName string) {
+func (m *MyMinIo) UploadFile(bucketName, filePath, objectName string, opts minio.PutObjectOptions) {
 	// filePath 要上传文件在磁盘的路径; objectName 上传后文件的名称
 
 	// 使用FPutObject上传一个zip文件。
@@ -62,7 +62,7 @@ func (m *MyMinIo) UploadFile(bucketName, filePath, objectName string) {
 	//opts := minio.PutObjectOptions{ContentType: contentType}
 
 	// 保留文件原格式
-	opts := minio.PutObjectOptions{}
+	//opts := minio.PutObjectOptions{}
 
 	n, err := m.minioClient.FPutObject(bucketName, objectName, filePath, opts)
 	if err != nil {
