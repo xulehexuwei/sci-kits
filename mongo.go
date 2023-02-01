@@ -10,13 +10,24 @@ import (
 	"time"
 )
 
-func MongoDbClient() *mongo.Database {
-	label := "mongo"
-	host := MyViper.GetString(fmt.Sprintf("%s.host", label))
-	port := MyViper.GetString(fmt.Sprintf("%s.host", label))
-	user := MyViper.GetString(fmt.Sprintf("%s.host", label))
-	pw := MyViper.GetString(fmt.Sprintf("%s.host", label))
-	db := MyViper.GetString(fmt.Sprintf("%s.host", label))
+type MongoClient struct {
+	Label  string // yaml文件中的mongo标签
+	client *mongo.Database
+}
+
+func (m *MongoClient) GetClient() *mongo.Database {
+	return m.client
+}
+
+func (m *MongoClient) Init() {
+	if m.Label == "" {
+		m.Label = "mongo"
+	}
+	host := MyViper.GetString(fmt.Sprintf("%s.host", m.Label))
+	port := MyViper.GetString(fmt.Sprintf("%s.port", m.Label))
+	user := MyViper.GetString(fmt.Sprintf("%s.user", m.Label))
+	pw := MyViper.GetString(fmt.Sprintf("%s.pass", m.Label))
+	db := MyViper.GetString(fmt.Sprintf("%s.db", m.Label))
 
 	// [mongodb://][user:pass@]host1[:port1][,host2[:port2],...][/database][?options]
 	mongoURI := fmt.Sprintf("mongodb://%s:%s@%s:%v/%s", user, pw, host, port, db)
@@ -32,31 +43,25 @@ func MongoDbClient() *mongo.Database {
 		log.Fatal(err)
 	}
 	mongoDB := client.Database(db)
-	return mongoDB
+	m.client = mongoDB
 }
 
-func MongoUpdate(MongoDB *mongo.Database, colName string, filter bson.M, update bson.M) (*mongo.UpdateResult, error) {
-	collection := MongoDB.Collection(colName)
+func (m *MongoClient) Update(colName string, filter bson.M, update bson.M) (*mongo.UpdateResult, error) {
+	collection := m.client.Collection(colName)
 	updateBson := bson.M{"$set": update}
 	res, err := collection.UpdateOne(context.TODO(), filter, updateBson)
 	return res, err
 }
 
-//func MongoBulkUpdate(MongoDB *mongo.Database, colName string, arr ) (*mongo.UpdateResult, error) {
-//	collection := MongoDB.Collection(colName)
-//	res, err := collection.BulkWrite(arr)
-//	return res, err
-//}
-
 // 根据唯一键有则更新无则添加
-func MongoUpdateOrInsert(MongoDB *mongo.Database, colName string, filter bson.M, bMap bson.M) error {
+func (m *MongoClient) MongoUpdateOrInsert(colName string, filter bson.M, bMap bson.M) error {
 	timeNow := time.Now().Unix()
 	bMap["CreateTime"] = timeNow
-	_, err := MongoInsertOne(MongoDB, colName, bMap)
+	_, err := m.MongoInsertOne(colName, bMap)
 	if err != nil {
 		delete(bMap, "CreateTime")
 		bMap["UpdateTime"] = timeNow
-		err = MongoFindOneAndUpdate(MongoDB, colName, filter, bMap)
+		err = m.MongoFindOneAndUpdate(colName, filter, bMap)
 		if err != nil {
 			return err
 		}
@@ -64,9 +69,9 @@ func MongoUpdateOrInsert(MongoDB *mongo.Database, colName string, filter bson.M,
 	return nil
 }
 
-func MongoFindOneAndUpdate(MongoDB *mongo.Database, colName string, filter bson.M, update bson.M) error {
+func (m *MongoClient) MongoFindOneAndUpdate(colName string, filter bson.M, update bson.M) error {
 	updateBson := bson.M{"$set": update}
-	collection := MongoDB.Collection(colName)
+	collection := m.client.Collection(colName)
 	res := collection.FindOneAndUpdate(context.TODO(), filter, updateBson)
 	err := res.Err()
 	if err != nil {
@@ -77,14 +82,14 @@ func MongoFindOneAndUpdate(MongoDB *mongo.Database, colName string, filter bson.
 	}
 }
 
-func MongoInsertOne(MongoDB *mongo.Database, colName string, document interface{}) (*mongo.InsertOneResult, error) {
-	collection := MongoDB.Collection(colName)
+func (m *MongoClient) MongoInsertOne(colName string, document interface{}) (*mongo.InsertOneResult, error) {
+	collection := m.client.Collection(colName)
 	res, err := collection.InsertOne(context.TODO(), document)
 	return res, err
 }
 
-func MongoJudgeExist(MongoDB *mongo.Database, colName string, filter bson.M) bool {
-	collection := MongoDB.Collection(colName)
+func (m *MongoClient) MongoJudgeExist(colName string, filter bson.M) bool {
+	collection := m.client.Collection(colName)
 	singleResult := collection.FindOne(context.TODO(), filter)
 	err := singleResult.Err()
 	if err != nil {
@@ -94,15 +99,15 @@ func MongoJudgeExist(MongoDB *mongo.Database, colName string, filter bson.M) boo
 	}
 }
 
-func MongoFindOneLoadStruct(MongoDB *mongo.Database, colName string, filter bson.M, model interface{}) error {
-	collection := MongoDB.Collection(colName)
+func (m *MongoClient) MongoFindOneLoadStruct(colName string, filter bson.M, model interface{}) error {
+	collection := m.client.Collection(colName)
 	singleResult := collection.FindOne(context.TODO(), filter)
 	err := singleResult.Decode(model)
 	return err
 }
 
-func MongoFindAll(MongoDB *mongo.Database, colName string, filter bson.M, opts ...*options.FindOptions) []map[string]interface{} {
-	collection := MongoDB.Collection(colName)
+func (m *MongoClient) MongoFindAll(colName string, filter bson.M, opts ...*options.FindOptions) []map[string]interface{} {
+	collection := m.client.Collection(colName)
 	cur, _ := collection.Find(context.TODO(), filter, opts...)
 	defer cur.Close(context.TODO())
 	results := getMongoListDataByCur(cur)
@@ -123,14 +128,14 @@ func getMongoListStructByCur(cur *mongo.Cursor, responseStruct struct{}) []struc
 	return results
 }
 
-func GetMongoFindCur(MongoDB *mongo.Database, colName string, filter bson.M, opts ...*options.FindOptions) *mongo.Cursor {
-	collection := MongoDB.Collection(colName)
+func (m *MongoClient) GetMongoFindCur(colName string, filter bson.M, opts ...*options.FindOptions) *mongo.Cursor {
+	collection := m.client.Collection(colName)
 	cur, _ := collection.Find(context.TODO(), filter, opts...)
 	return cur
 }
 
-func MongoCount(MongoDB *mongo.Database, colName string, filter bson.M) int64 {
-	collection := MongoDB.Collection(colName)
+func (m *MongoClient) MongoCount(colName string, filter bson.M) int64 {
+	collection := m.client.Collection(colName)
 	num, _ := collection.CountDocuments(context.TODO(), filter, nil)
 	return num
 }
@@ -152,8 +157,8 @@ func getMongoListDataByCur(cur *mongo.Cursor) []map[string]interface{} {
 	return results
 }
 
-func MongoSql(MongoDB *mongo.Database, colName string, filter bson.M, opts *options.FindOptions) []map[string]interface{} {
-	collection := MongoDB.Collection(colName)
+func (m *MongoClient) MongoSql(colName string, filter bson.M, opts *options.FindOptions) []map[string]interface{} {
+	collection := m.client.Collection(colName)
 	cur, err := collection.Find(context.TODO(), filter, opts)
 	if err != nil {
 		log.Fatal(err)
